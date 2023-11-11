@@ -4,7 +4,7 @@ let dragfrom;
 let dragring;
 let mousex;
 let mousey;
-let c = 5;
+let c = 4;
 let W = 2;
 let scount = 0;
 let nsstep = false;
@@ -159,6 +159,7 @@ function gameLoop(ts) {
   if (scount <= 0 && nsstep) {
     scount = sspeed;
     preform(nsstep);
+    save();
     nsstep = solve2(sfor);
   }
   scount -= (ts - pt);
