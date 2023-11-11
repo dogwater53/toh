@@ -1,4 +1,3 @@
-let canvas, ctx;
 let stacks = [[], [5, 4, 3, 2, 1], []];
 let ringcolor = ["#ff00ff", "#ff0000", "#ff8000", "#ffff00", "#00ff00", "#00ffff"];
 let dragfrom;
@@ -8,10 +7,10 @@ let mousey;
 let c = 5;
 let W = 2;
 let scount = 0;
-let ssteps = [];
-let sspeed = 0;
+let nsstep = false;
+let sspeed = 100;
 let pt = 0;
-let rset = false;
+let sfor = 0;
 
 window.onload = () => {
   load();
@@ -32,12 +31,18 @@ window.onload = () => {
         return;
       }
       c -= 1;
+    } else if (["1", "2", "3"].includes(e.key)) {
+      sfor = parseInt(e.key)-1;
+      nsstep = solve2(sfor);
+      return;
     } else if (e.key == "s") {
-      if (!rset) {
-        return;
-      }
-      ssteps = solve(1, 2, 0, c + 1);
-      sspeed = 5000/ssteps.length;
+      nsstep = false;
+      return;
+    } else if (e.key == "ArrowRight") {
+      sspeed = Math.max(sspeed-20, -20);
+      return;
+    } else if (e.key == "ArrowLeft") {
+      sspeed = Math.min(sspeed+20, 500);
       return;
     } else if (e.key != "r") {
       return;
@@ -49,7 +54,6 @@ window.onload = () => {
     }
     localStorage.setItem("c", JSON.stringify(c));
     save();
-    rset = true;
   });
   canvas.addEventListener("mousedown", mousedown);
   canvas.addEventListener("mouseup", mouseup);
@@ -80,7 +84,7 @@ function save() {
 }
 
 function mousedown() {
-  if (dragring || ssteps.length != 0) {
+  if (dragring || nsstep) {
     return;
   }
   stack = mousestack();
@@ -88,7 +92,6 @@ function mousedown() {
   dragfrom = stack;
   dragring = stacks[stack][stackl - 1];
   stacks[stack].pop();
-  rset = false;
 }
 
 function mouseup() {
@@ -153,10 +156,10 @@ function preform(move) {
 }
 
 function gameLoop(ts) {
-  if (scount <= 0 && ssteps.length != 0) {
+  if (scount <= 0 && nsstep) {
     scount = sspeed;
-    preform(ssteps[0]);
-    ssteps.shift();
+    preform(nsstep);
+    nsstep = solve2(sfor);
   }
   scount -= (ts - pt);
   pt = ts;
@@ -171,9 +174,65 @@ function gameLoop(ts) {
 }
 
 function solve(s, d, o, n) {
-  console.log(s, o, d, n);
   if (n == 1) {
     return [[s, d]];
   }
   return solve(s, o, d, n - 1).concat(solve(s, d, 0, 1)).concat(solve(o, d, s, n - 1));
+}
+
+function findstack(r) {
+  for (let i = 0; i < 3; i++) {
+    if (stacks[i].includes(r)) {
+      return i;
+    }
+  }
+}
+
+function opposite(a, b) {
+  return 3-(a+b);
+}
+
+function nextring(dest) {
+  for (let r = c+1; r > 0; r --) {
+    if (!(stacks[dest].includes(r))) {
+      return r;
+    }
+  }
+  return false;
+}
+
+function findobstacle(r, rs, dest) {
+  let obs = 0;
+  for (i = 0; i < stacks[dest].length; i++) {
+    if (stacks[dest][i] < r) {
+      obs = stacks[dest][i];
+      break;
+    }
+  }
+  for (let i = 0; i < stacks[rs].length; i++) {
+    if (stacks[rs][i] < r) {
+      obs = Math.max(obs, stacks[rs][i]);
+      break;
+    }
+  }
+  if (obs == 0) {
+    return false;
+  }
+  return obs;
+}
+
+function solve2(dest) {
+  let nr = nextring(dest);
+  let nrs = findstack(nr);
+  if (!nr) {
+    return false;
+  }
+  let obs = findobstacle(nr, nrs, dest);
+  while (obs) {
+    dest = opposite(nrs, dest);
+    nr = obs;
+    nrs = findstack(nr);
+    obs = findobstacle(nr, nrs, dest);
+  }
+  return [nrs, dest];
 }
